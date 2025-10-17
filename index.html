@@ -11,7 +11,7 @@
     <header class="hero">
       <div class="hero__glow" aria-hidden="true"></div>
       <div class="hero__content">
-        <p class="hero__eyebrow">Kindai University Festival 2025</p>
+        <p class="hero__eyebrow">第77回生駒祭</p>
         <h1 class="hero__title">屋台評価フォーム</h1>
         <p class="hero__subtitle">屋台番号を選んで、5段階で評価してください。あなたの一票がランキングに反映されます。</p>
       </div>
@@ -129,8 +129,20 @@
       <button id="evaluate-another" class="btn btn--accent">他の屋台を評価する</button>
     </section>
 
+    <section id="already-voted" class="card already-voted hidden" aria-live="polite">
+      <div class="already-voted__badge">Notice</div>
+      <h2 class="already-voted__title">この屋台にはすでに投票済みです</h2>
+      <p class="already-voted__body">
+        屋台番号 <span id="already-voted-number">---</span> の評価はすでに送信されています。<br />
+        ほかの屋台も体験したら、ぜひ評価をお願いします。
+      </p>
+      <div class="already-voted__actions">
+        <button id="already-change-booth" class="btn btn--accent">別の屋台を評価する</button>
+      </div>
+    </section>
+
     <footer class="footer">
-      Powered by Kindai University Festival 2025
+      Powered by 第77回生駒祭
     </footer>
   </main>
 

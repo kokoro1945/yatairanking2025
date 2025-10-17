@@ -6,6 +6,12 @@ const REQUIRED_ENTRIES = [
   'entry.1748112455', // 見た目
   'entry.1302631587', // 量
 ];
+const ENTRY_LABELS = {
+  'entry.283403021': '味',
+  'entry.1777377100': '接客',
+  'entry.1748112455': '見た目',
+  'entry.1302631587': '量',
+};
 
 const gateSection = document.getElementById('booth-gate');
 const gateInput = document.getElementById('gate-booth');
@@ -20,6 +26,9 @@ const alertBox = document.getElementById('form-alert');
 const submitButton = document.getElementById('submit-button');
 const thanksSection = document.getElementById('thanks');
 const evaluateAnotherButton = document.getElementById('evaluate-another');
+const alreadyVotedSection = document.getElementById('already-voted');
+const alreadyVotedNumber = document.getElementById('already-voted-number');
+const alreadyChangeBoothButton = document.getElementById('already-change-booth');
 
 let currentBoothId = '';
 let boothLocked = false;
@@ -67,6 +76,7 @@ function attachEventListeners() {
 
   form.addEventListener('submit', handleFormSubmit);
   evaluateAnotherButton.addEventListener('click', handleEvaluateAnother);
+  alreadyChangeBoothButton.addEventListener('click', handleEvaluateAnother);
 }
 
 function setupInitialState() {
@@ -127,8 +137,9 @@ function handleFormSubmit(event) {
     return;
   }
 
-  if (!allRatingsSelected()) {
-    showAlert('全ての評価を選択してください。', 'warning');
+  const missingRatings = getMissingRatings();
+  if (missingRatings.length) {
+    showAlert(`未入力：${missingRatings.join('・')}。星をタップして評価してください。`, 'warning');
     submitButton.disabled = true;
     return;
   }
@@ -158,6 +169,7 @@ function handleEvaluateAnother() {
   showGate();
   updateQueryParam(null);
   thanksSection.classList.add('hidden');
+  hideAlreadyVotedView(true);
   gateInput.focus();
 }
 
@@ -171,26 +183,22 @@ function setBooth(boothId, { fromQuery }) {
   updateQueryParam(boothId);
 
   resetRatingsOnly();
-  showForm();
-  updateSubmitState();
-
-  if (fromQuery) {
-    changeBoothButton.classList.add('hidden');
-  } else {
-    changeBoothButton.classList.remove('hidden');
-  }
+  changeBoothButton.classList.toggle('hidden', fromQuery);
 
   if (hasAlreadyVoted(boothId)) {
-    showAlert('この屋台にはすでに投票済みです。別の屋台を選んでください。', 'warning');
-    submitButton.disabled = true;
-  } else {
-    showAlert('');
+    showAlreadyVotedView();
+    return;
   }
+
+  hideAlreadyVotedView();
+  showForm();
+  updateSubmitState();
 }
 
 function showForm() {
   gateSection.classList.add('hidden');
   thanksSection.classList.add('hidden');
+  alreadyVotedSection.classList.add('hidden');
   form.classList.remove('hidden');
   submitButton.textContent = '評価を送信する';
   submitButton.disabled = true;
@@ -200,6 +208,7 @@ function showGate() {
   gateSection.classList.remove('hidden');
   form.classList.add('hidden');
   thanksSection.classList.add('hidden');
+  hideAlreadyVotedView(true);
   currentBoothId = '';
   boothLocked = false;
   gateInput.value = '';
@@ -208,8 +217,29 @@ function showGate() {
 function showThanks() {
   form.classList.add('hidden');
   thanksSection.classList.remove('hidden');
+  alreadyVotedSection.classList.add('hidden');
   submitButton.textContent = '評価を送信する';
   submitButton.disabled = true;
+}
+
+function showAlreadyVotedView() {
+  gateSection.classList.add('hidden');
+  form.classList.add('hidden');
+  thanksSection.classList.add('hidden');
+  alreadyVotedSection.classList.remove('hidden');
+  submitButton.textContent = '評価を送信する';
+  submitButton.disabled = true;
+  showAlert('');
+  if (alreadyVotedNumber) {
+    alreadyVotedNumber.textContent = currentBoothId || '---';
+  }
+}
+
+function hideAlreadyVotedView(resetDisplayedNumber = false) {
+  alreadyVotedSection.classList.add('hidden');
+  if (resetDisplayedNumber && alreadyVotedNumber) {
+    alreadyVotedNumber.textContent = '---';
+  }
 }
 
 function resetForm(resetBoothValue) {
@@ -218,6 +248,7 @@ function resetForm(resetBoothValue) {
   showAlert('');
   submitButton.textContent = '評価を送信する';
   submitButton.disabled = true;
+  hideAlreadyVotedView();
   if (resetBoothValue) {
     currentBoothId = '';
     formBoothInput.value = '';
@@ -237,22 +268,38 @@ function resetRatingsOnly() {
 }
 
 function updateSubmitState() {
-  const complete = allRatingsSelected() && currentBoothId && !hasAlreadyVoted(currentBoothId);
-  submitButton.disabled = !complete;
-  if (!complete && currentBoothId) {
-    const voted = hasAlreadyVoted(currentBoothId);
-    if (voted) {
-      showAlert('この屋台にはすでに投票済みです。別の屋台を選んでください。', 'warning');
-    } else {
-      showAlert('');
-    }
-  } else if (complete) {
-    showAlert('');
+  if (form.classList.contains('hidden')) {
+    submitButton.disabled = true;
+    return;
   }
+
+  if (!currentBoothId) {
+    submitButton.disabled = true;
+    showAlert('');
+    return;
+  }
+
+  if (hasAlreadyVoted(currentBoothId)) {
+    submitButton.disabled = true;
+    showAlert('この屋台にはすでに投票済みです。別の屋台を選んでください。', 'warning');
+    return;
+  }
+
+  const missingRatings = getMissingRatings();
+  if (missingRatings.length) {
+    submitButton.disabled = true;
+    showAlert(`未入力：${missingRatings.join('・')}。星をタップして評価してください。`, 'info');
+    return;
+  }
+
+  submitButton.disabled = false;
+  showAlert('');
 }
 
-function allRatingsSelected() {
-  return REQUIRED_ENTRIES.every((name) => form.querySelector(`input[name="${name}"]:checked`));
+function getMissingRatings() {
+  return REQUIRED_ENTRIES
+    .filter((name) => !form.querySelector(`input[name="${name}"]:checked`))
+    .map((name) => ENTRY_LABELS[name] || name);
 }
 
 function showAlert(message, tone = 'error') {
