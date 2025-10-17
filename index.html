@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>屋台評価フォーム｜近畿大学生駒祭</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="hero__content">
+        <p class="hero__eyebrow">Kindai University Festival 2025</p>
+        <h1 class="hero__title">屋台評価フォーム</h1>
+        <p class="hero__subtitle">屋台番号を選んで、5段階で評価してください。あなたの一票がランキングに反映されます。</p>
+      </div>
+    </header>
+
+    <section id="booth-gate" class="card gate">
+      <h2 class="card__title">屋台番号を入力してください</h2>
+      <p class="card__desc">屋台に掲示されている3桁の番号を入力すると評価フォームが表示されます。</p>
+      <div class="gate__form">
+        <label class="gate__label" for="gate-booth">
+          <span>屋台番号</span>
+          <input id="gate-booth" class="input" type="text" inputmode="numeric" placeholder="例：001" maxlength="3" />
+        </label>
+        <button id="gate-submit" class="btn btn--accent">この屋台を評価する</button>
+      </div>
+      <p id="gate-error" class="gate__error" role="alert" aria-live="polite"></p>
+    </section>
+
+    <form id="rating-form" class="form card hidden" autocomplete="off">
+      <input type="hidden" id="form-booth" name="entry.375954542" />
+
+      <section class="booth-banner">
+        <div class="booth-banner__badge">Booth</div>
+        <div class="booth-banner__number" id="booth-display">---</div>
+        <button type="button" id="change-booth" class="booth-banner__edit">番号を変更</button>
+      </section>
+
+      <div id="form-alert" class="alert" role="alert" aria-live="polite"></div>
+
+      <div class="card-grid">
+        <fieldset class="question-card">
+          <legend class="question-card__title">味の評価</legend>
+          <p class="question-card__subtitle">屋台の味を5段階で評価してください。</p>
+          <div class="stars" data-entry="entry.283403021">
+            <input type="radio" id="taste-1" name="entry.283403021" value="1" />
+            <label for="taste-1" data-value="1">★</label>
+            <input type="radio" id="taste-2" name="entry.283403021" value="2" />
+            <label for="taste-2" data-value="2">★</label>
+            <input type="radio" id="taste-3" name="entry.283403021" value="3" />
+            <label for="taste-3" data-value="3">★</label>
+            <input type="radio" id="taste-4" name="entry.283403021" value="4" />
+            <label for="taste-4" data-value="4">★</label>
+            <input type="radio" id="taste-5" name="entry.283403021" value="5" />
+            <label for="taste-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card">
+          <legend class="question-card__title">接客の評価</legend>
+          <p class="question-card__subtitle">スタッフの対応や雰囲気を評価してください。</p>
+          <div class="stars" data-entry="entry.1777377100">
+            <input type="radio" id="service-1" name="entry.1777377100" value="1" />
+            <label for="service-1" data-value="1">★</label>
+            <input type="radio" id="service-2" name="entry.1777377100" value="2" />
+            <label for="service-2" data-value="2">★</label>
+            <input type="radio" id="service-3" name="entry.1777377100" value="3" />
+            <label for="service-3" data-value="3">★</label>
+            <input type="radio" id="service-4" name="entry.1777377100" value="4" />
+            <label for="service-4" data-value="4">★</label>
+            <input type="radio" id="service-5" name="entry.1777377100" value="5" />
+            <label for="service-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card">
+          <legend class="question-card__title">見た目の評価</legend>
+          <p class="question-card__subtitle">盛り付けや屋台の演出を評価してください。</p>
+          <div class="stars" data-entry="entry.1748112455">
+            <input type="radio" id="appearance-1" name="entry.1748112455" value="1" />
+            <label for="appearance-1" data-value="1">★</label>
+            <input type="radio" id="appearance-2" name="entry.1748112455" value="2" />
+            <label for="appearance-2" data-value="2">★</label>
+            <input type="radio" id="appearance-3" name="entry.1748112455" value="3" />
+            <label for="appearance-3" data-value="3">★</label>
+            <input type="radio" id="appearance-4" name="entry.1748112455" value="4" />
+            <label for="appearance-4" data-value="4">★</label>
+            <input type="radio" id="appearance-5" name="entry.1748112455" value="5" />
+            <label for="appearance-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card">
+          <legend class="question-card__title">量の評価</legend>
+          <p class="question-card__subtitle">ボリュームや満足感を評価してください。</p>
+          <div class="stars" data-entry="entry.1302631587">
+            <input type="radio" id="volume-1" name="entry.1302631587" value="1" />
+            <label for="volume-1" data-value="1">★</label>
+            <input type="radio" id="volume-2" name="entry.1302631587" value="2" />
+            <label for="volume-2" data-value="2">★</label>
+            <input type="radio" id="volume-3" name="entry.1302631587" value="3" />
+            <label for="volume-3" data-value="3">★</label>
+            <input type="radio" id="volume-4" name="entry.1302631587" value="4" />
+            <label for="volume-4" data-value="4">★</label>
+            <input type="radio" id="volume-5" name="entry.1302631587" value="5" />
+            <label for="volume-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card question-card--textarea">
+          <legend class="question-card__title">生駒祭について</legend>
+          <p class="question-card__subtitle">フェスティバル全体の感想や応援メッセージがあればお書きください。（任意）</p>
+          <textarea id="comment" name="entry.1107530138" rows="4" placeholder="例：活気があってとても楽しかったです！" class="textarea"></textarea>
+        </fieldset>
+      </div>
+
+      <div class="submit-area">
+        <button type="submit" id="submit-button" class="btn btn--submit" disabled>評価を送信する</button>
+      </div>
+    </form>
+
+    <section id="thanks" class="card thanks hidden" aria-live="polite">
+      <div class="thanks__badge">Thank you!</div>
+      <h2 class="thanks__title">ご協力ありがとうございました！</h2>
+      <p class="thanks__body">あなたの評価はランキング集計に反映されます。<br />生駒祭をこれからも一緒に盛り上げましょう！</p>
+      <button id="evaluate-another" class="btn btn--accent">他の屋台を評価する</button>
+    </section>
+
+    <footer class="footer">
+      Powered by Kindai University Festival 2025
+    </footer>
+  </main>
+
+  <script src="./main.js" defer></script>
+</body>
+</html>
