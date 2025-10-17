@@ -12,6 +12,7 @@ const ENTRY_LABELS = {
   'entry.1748112455': '見た目',
   'entry.1302631587': '量',
 };
+// Supabase REST API 接続設定（フロントエンドで利用する anon キー）
 const SUPABASE_URL = 'https://afdfgsyjzlbehojbquyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmZGZnc3lqemxiZWhvamJxdXlmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDY4NjU1MCwiZXhwIjoyMDc2MjYyNTUwfQ.eKOY-8z3-JJJi_4nvEdtX4Nq62CglVIwGb37p30Q2vU';
 const SUPABASE_TABLE = 'yatai_votes';
@@ -162,6 +163,7 @@ function handleFormSubmit(event) {
   submitButton.textContent = '送信中...';
   showAlert('');
 
+  // Supabase への送信が有効な場合のみ payload を構築
   const supabasePayload = SUPABASE_ENABLED ? buildSupabasePayload(formData) : null;
   console.debug('[submit] booth', currentBoothId, 'payload', supabasePayload);
 
@@ -174,6 +176,7 @@ function handleFormSubmit(event) {
   ];
 
   if (supabasePayload) {
+    // Google フォーム送信と並列で Supabase への登録を実行
     requests.push(sendToSupabase(supabasePayload));
   }
 
@@ -189,6 +192,7 @@ function handleFormSubmit(event) {
       return;
     }
 
+    // Supabase 送信の成否を判定し、後続処理（ローカルストレージやUI）を制御
     let supabaseSucceeded = true;
     if (supabasePayload) {
       if (!supabaseResult || supabaseResult.status === 'rejected') {
@@ -378,6 +382,7 @@ function sendToSupabase(payload) {
 
   console.debug('[supabase] POST', endpoint, payload.booth_id);
 
+  // RLS で anon ロールの insert を許可した状態で匿名キーを利用して登録
   return fetch(endpoint, {
     method: 'POST',
     headers: {
