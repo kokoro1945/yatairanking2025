@@ -41,7 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function attachEventListeners() {
   gateInput.addEventListener('input', () => {
-    gateInput.value = gateInput.value.replace(/[^\d]/g, '').slice(0, 3);
+    let value = gateInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (value.length && /^[A-Z]/.test(value[0])) {
+      const letter = value[0];
+      const digits = value.slice(1).replace(/\D/g, '').slice(0, 2);
+      value = letter + digits;
+    } else {
+      value = value.replace(/\D/g, '').slice(0, 3);
+    }
+    gateInput.value = value;
   });
 
   gateInput.addEventListener('keydown', (event) => {
@@ -55,7 +63,7 @@ function attachEventListeners() {
     event.preventDefault();
     const boothCandidate = sanitizeBooth(gateInput.value);
     if (!boothCandidate) {
-      showGateError('屋台番号（3桁の数字）を入力してください。');
+      showGateError('屋台番号（例：001 または A01）を入力してください。');
       return;
     }
     hideGateError();
@@ -321,12 +329,26 @@ function hideGateError() {
 }
 
 function sanitizeBooth(value) {
-  const cleaned = (value ?? '').toString().trim();
-  const digits = cleaned.replace(/[^\d]/g, '');
+  const raw = (value ?? '').toString().trim().toUpperCase();
+  if (!raw) return '';
+
+  const cleaned = raw.replace(/[^A-Z0-9]/g, '');
+  if (!cleaned) return '';
+
+  if (/^[A-Z]/.test(cleaned[0])) {
+    const letter = cleaned[0];
+    const digits = cleaned.slice(1).replace(/\D/g, '');
+    if (!digits) return '';
+    const normalized = digits.padStart(2, '0').slice(-2);
+    const numeric = parseInt(normalized, 10);
+    if (Number.isNaN(numeric) || numeric <= 0) return '';
+    return `${letter}${normalized}`;
+  }
+
+  const digits = cleaned.replace(/\D/g, '');
   if (!digits) return '';
   const numeric = parseInt(digits, 10);
-  if (Number.isNaN(numeric)) return '';
-  if (numeric <= 0) return '';
+  if (Number.isNaN(numeric) || numeric <= 0) return '';
   return digits.padStart(3, '0').slice(-3);
 }
 
