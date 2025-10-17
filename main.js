@@ -12,6 +12,10 @@ const ENTRY_LABELS = {
   'entry.1748112455': '見た目',
   'entry.1302631587': '量',
 };
+const SUPABASE_URL = 'https://afdfgsyjzlbehojbquyf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmZGZnc3lqemxiZWhvamJxdXlmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDY4NjU1MCwiZXhwIjoyMDc2MjYyNTUwfQ.eKOY-8z3-JJJi_4nvEdtX4Nq62CglVIwGb37p30Q2vU';
+const SUPABASE_TABLE = 'yatai_votes';
+const SUPABASE_ENABLED = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
 const gateSection = document.getElementById('booth-gate');
 const gateInput = document.getElementById('gate-booth');
@@ -158,14 +162,55 @@ function handleFormSubmit(event) {
   submitButton.textContent = '送信中...';
   showAlert('');
 
-  fetch(FORM_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    body: formData,
-  }).then(() => {
+  const supabasePayload = SUPABASE_ENABLED ? buildSupabasePayload(formData) : null;
+  console.debug('[submit] booth', currentBoothId, 'payload', supabasePayload);
+
+  const requests = [
+    fetch(FORM_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: formData,
+    }),
+  ];
+
+  if (supabasePayload) {
+    requests.push(sendToSupabase(supabasePayload));
+  }
+
+  Promise.allSettled(requests).then((results) => {
+    console.debug('[submit] request results', results);
+    const [googleResult, supabaseResult] = results;
+
+    if (googleResult.status === 'rejected') {
+      console.error('[submit] Google Form submission failed', googleResult.reason);
+      showAlert('通信に失敗しました。再試行してください。', 'error');
+      submitButton.disabled = false;
+      submitButton.textContent = previousLabel;
+      return;
+    }
+
+    let supabaseSucceeded = true;
+    if (supabasePayload) {
+      if (!supabaseResult || supabaseResult.status === 'rejected') {
+        supabaseSucceeded = false;
+        console.error('[submit] Supabase sync failed:', supabaseResult ? supabaseResult.reason : 'unknown');
+        window.alert('ランキング集計への登録に失敗しました。通信環境を確認してからもう一度お試しください。');
+      } else {
+        window.alert('ランキング集計への登録が完了しました。ご協力ありがとうございます！');
+      }
+    }
+
+    if (!supabaseSucceeded) {
+      showAlert('ランキング集計への登録に失敗しました。通信環境を確認して再送信してください。', 'error');
+      submitButton.disabled = false;
+      submitButton.textContent = previousLabel;
+      return;
+    }
+
     persistBoothVote(currentBoothId);
     showThanks();
-  }).catch(() => {
+  }).catch((error) => {
+    console.error('[submit] Unexpected error during submission', error);
     showAlert('通信に失敗しました。再試行してください。', 'error');
     submitButton.disabled = false;
     submitButton.textContent = previousLabel;
@@ -308,6 +353,47 @@ function getMissingRatings() {
   return REQUIRED_ENTRIES
     .filter((name) => !form.querySelector(`input[name="${name}"]:checked`))
     .map((name) => ENTRY_LABELS[name] || name);
+}
+
+function buildSupabasePayload(formData) {
+  const toNumber = (entry) => {
+    const value = formData.get(entry);
+    return value ? Number(value) : null;
+  };
+  return {
+    booth_id: currentBoothId || (formData.get('entry.375954542') || '').toString().trim(),
+    taste: toNumber('entry.283403021'),
+    service: toNumber('entry.1777377100'),
+    visual: toNumber('entry.1748112455'),
+    amount: toNumber('entry.1302631587'),
+    comment: (formData.get('entry.1107530138') || '').toString().trim(),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+function sendToSupabase(payload) {
+  if (!SUPABASE_ENABLED) return Promise.resolve();
+
+  const endpoint = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${SUPABASE_TABLE}`;
+
+  console.debug('[supabase] POST', endpoint, payload.booth_id);
+
+  return fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(payload),
+  }).then((response) => {
+    if (!response.ok) {
+      return response.text().then((text) => {
+        throw new Error(text || `Supabase responded with status ${response.status}`);
+      });
+    }
+  });
 }
 
 function showAlert(message, tone = 'error') {
