@@ -29,6 +29,7 @@
         </label>
         <button id="gate-submit" class="btn btn--accent">この屋台を評価する</button>
       </div>
+      <p id="gate-booth-name" class="gate__booth-name" aria-live="polite">屋台名：入力すると自動表示されます</p>
       <p id="gate-error" class="gate__error" role="alert" aria-live="polite"></p>
     </section>
 
@@ -37,7 +38,10 @@
 
       <section class="booth-banner">
         <div class="booth-banner__badge">Booth</div>
-        <div class="booth-banner__number" id="booth-display">---</div>
+        <div class="booth-banner__info">
+          <div class="booth-banner__number" id="booth-display">---</div>
+          <div class="booth-banner__name" id="booth-name-display">屋台名がここに表示されます</div>
+        </div>
         <button type="button" id="change-booth" class="booth-banner__edit">番号を変更</button>
       </section>
 

@@ -22,10 +22,12 @@ const gateSection = document.getElementById('booth-gate');
 const gateInput = document.getElementById('gate-booth');
 const gateButton = document.getElementById('gate-submit');
 const gateError = document.getElementById('gate-error');
+const gateBoothName = document.getElementById('gate-booth-name');
 
 const form = document.getElementById('rating-form');
 const formBoothInput = document.getElementById('form-booth');
 const boothDisplay = document.getElementById('booth-display');
+const boothNameDisplay = document.getElementById('booth-name-display');
 const changeBoothButton = document.getElementById('change-booth');
 const alertBox = document.getElementById('form-alert');
 const submitButton = document.getElementById('submit-button');
@@ -37,10 +39,20 @@ const alreadyChangeBoothButton = document.getElementById('already-change-booth')
 
 let currentBoothId = '';
 let boothLocked = false;
+let currentBoothName = '';
+const BOOTHS_CSV_URL = './booths.csv';
+let boothCatalog = null;
+let boothCatalogPromise = null;
+let gateBoothNameRequestId = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeStarInputs();
   attachEventListeners();
+  renderGateBoothNameDefault();
+  renderBoothBannerName('');
+  loadBoothCatalog().catch((error) => {
+    console.error('[booth] failed to preload catalogue', error);
+  });
   setupInitialState();
 });
 
@@ -55,6 +67,12 @@ function attachEventListeners() {
       value = value.replace(/\D/g, '').slice(0, 3);
     }
     gateInput.value = value;
+    const boothId = sanitizeBooth(value);
+    if (boothId) {
+      requestGateBoothNameLookup(boothId);
+    } else {
+      renderGateBoothNameDefault();
+    }
   });
 
   gateInput.addEventListener('keydown', (event) => {
@@ -79,7 +97,7 @@ function attachEventListeners() {
     if (boothLocked) return;
     resetForm(true);
     showGate();
-    updateQueryParam(null);
+    updateQueryParam(null, null);
     gateInput.focus();
   });
 
@@ -95,8 +113,9 @@ function attachEventListeners() {
 function setupInitialState() {
   resetForm(true);
   const boothFromQuery = getBoothFromQuery();
+  const boothNameFromQuery = getBoothNameFromQuery();
   if (boothFromQuery) {
-    setBooth(boothFromQuery, { fromQuery: true });
+    setBooth(boothFromQuery, { fromQuery: true, boothName: boothNameFromQuery });
   } else {
     showGate();
   }
@@ -224,20 +243,29 @@ function handleFormSubmit(event) {
 function handleEvaluateAnother() {
   resetForm(true);
   showGate();
-  updateQueryParam(null);
+  updateQueryParam(null, null);
   thanksSection.classList.add('hidden');
   hideAlreadyVotedView(true);
   gateInput.focus();
 }
 
-function setBooth(boothId, { fromQuery }) {
+function setBooth(boothId, { fromQuery, boothName }) {
   currentBoothId = boothId;
+  currentBoothName = (boothName || '').toString().trim();
   boothLocked = Boolean(fromQuery);
   formBoothInput.value = boothId;
   boothDisplay.textContent = boothId;
   gateInput.value = boothId;
 
-  updateQueryParam(boothId);
+  if (currentBoothName) {
+    renderGateBoothNameResult(currentBoothName);
+    renderBoothBannerName(currentBoothName);
+  } else {
+    renderBoothBannerName('');
+    requestGateBoothNameLookup(boothId);
+  }
+
+  updateQueryParam(boothId, currentBoothName || null);
 
   resetRatingsOnly();
   changeBoothButton.classList.toggle('hidden', fromQuery);
@@ -250,6 +278,20 @@ function setBooth(boothId, { fromQuery }) {
   hideAlreadyVotedView();
   showForm();
   updateSubmitState();
+
+  if (!currentBoothName) {
+    resolveBoothName(boothId)
+      .then((name) => {
+        if (!name || currentBoothId !== boothId) return;
+        currentBoothName = name;
+        renderGateBoothNameResult(name);
+        renderBoothBannerName(name);
+        updateQueryParam(currentBoothId, currentBoothName);
+      })
+      .catch((error) => {
+        console.error('[booth] failed to resolve booth name', error);
+      });
+  }
 }
 
 function showForm() {
@@ -269,6 +311,9 @@ function showGate() {
   currentBoothId = '';
   boothLocked = false;
   gateInput.value = '';
+  currentBoothName = '';
+  renderGateBoothNameDefault();
+  renderBoothBannerName('');
 }
 
 function showThanks() {
@@ -288,7 +333,11 @@ function showAlreadyVotedView() {
   submitButton.disabled = true;
   showAlert('');
   if (alreadyVotedNumber) {
-    alreadyVotedNumber.textContent = currentBoothId || '---';
+    if (currentBoothId) {
+      alreadyVotedNumber.textContent = currentBoothName ? `${currentBoothId}（${currentBoothName}）` : currentBoothId;
+    } else {
+      alreadyVotedNumber.textContent = '---';
+    }
   }
 }
 
@@ -308,8 +357,11 @@ function resetForm(resetBoothValue) {
   hideAlreadyVotedView();
   if (resetBoothValue) {
     currentBoothId = '';
+    currentBoothName = '';
     formBoothInput.value = '';
     boothDisplay.textContent = '---';
+    renderBoothBannerName('');
+    renderGateBoothNameDefault();
   }
 }
 
@@ -450,12 +502,18 @@ function getBoothFromQuery() {
   return sanitized;
 }
 
-function updateQueryParam(boothId) {
+function updateQueryParam(boothId, boothName) {
   const url = new URL(window.location.href);
   if (boothId) {
     url.searchParams.set('booth', boothId);
+    if (boothName) {
+      url.searchParams.set('name', boothName);
+    } else {
+      url.searchParams.delete('name');
+    }
   } else {
     url.searchParams.delete('booth');
+    url.searchParams.delete('name');
   }
   history.replaceState({}, '', url);
 }
@@ -484,4 +542,116 @@ function getStoredBooths() {
   } catch {
     return [];
   }
+}
+
+function getBoothNameFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get('name');
+  if (!name) return '';
+  return name.toString().trim();
+}
+
+function renderBoothBannerName(name) {
+  if (!boothNameDisplay) return;
+  if (name) {
+    boothNameDisplay.textContent = name;
+  } else {
+    boothNameDisplay.textContent = '屋台名がここに表示されます';
+  }
+}
+
+function renderGateBoothNameDefault() {
+  if (!gateBoothName) return;
+  gateBoothName.textContent = '屋台名：入力すると自動表示されます';
+}
+
+function renderGateBoothNameSearching() {
+  if (!gateBoothName) return;
+  gateBoothName.textContent = '屋台名：検索中...';
+}
+
+function renderGateBoothNameResult(name) {
+  if (!gateBoothName) return;
+  if (name) {
+    gateBoothName.textContent = `屋台名：${name}`;
+  } else {
+    gateBoothName.textContent = '屋台名：該当が見つかりません';
+  }
+}
+
+function renderGateBoothNameError() {
+  if (!gateBoothName) return;
+  gateBoothName.textContent = '屋台名：一覧の取得に失敗しました';
+}
+
+function requestGateBoothNameLookup(boothId) {
+  if (!boothId) {
+    renderGateBoothNameDefault();
+    return;
+  }
+  renderGateBoothNameSearching();
+  const requestId = ++gateBoothNameRequestId;
+  resolveBoothName(boothId)
+    .then((name) => {
+      if (requestId !== gateBoothNameRequestId) return;
+      renderGateBoothNameResult(name);
+      if (name && currentBoothId === boothId) {
+        currentBoothName = name;
+        renderBoothBannerName(name);
+        updateQueryParam(currentBoothId, currentBoothName);
+      }
+    })
+    .catch((error) => {
+      if (requestId !== gateBoothNameRequestId) return;
+      console.error('[booth] gate lookup failed', error);
+      renderGateBoothNameError();
+    });
+}
+
+async function resolveBoothName(boothId, preferredName = '') {
+  if (preferredName) return preferredName;
+  if (!boothId) return '';
+  try {
+    const catalogue = await loadBoothCatalog();
+    return catalogue.get(boothId) || '';
+  } catch (error) {
+    console.error('[booth] resolve error', error);
+    throw error;
+  }
+}
+
+async function loadBoothCatalog() {
+  if (boothCatalog) return boothCatalog;
+  if (boothCatalogPromise) {
+    await boothCatalogPromise;
+    return boothCatalog || new Map();
+  }
+  boothCatalogPromise = (async () => {
+    const map = new Map();
+    try {
+      const response = await fetch(BOOTHS_CSV_URL, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed to load booths.csv (status ${response.status})`);
+      }
+      const text = await response.text();
+      const rows = text.trim().split(/\r?\n/).slice(1);
+      rows.forEach((row) => {
+        if (!row) return;
+        const parts = row.split(',');
+        if (parts.length < 3) return;
+        const boothIdRaw = parts[1].trim();
+        const boothName = parts[2].trim();
+        if (!boothIdRaw || !boothName) return;
+        const normalized = sanitizeBooth(boothIdRaw);
+        if (normalized) {
+          map.set(normalized, boothName);
+        }
+      });
+    } catch (error) {
+      console.error('[booth] failed to load catalogue', error);
+    }
+    boothCatalog = map;
+  })();
+  await boothCatalogPromise;
+  return boothCatalog || new Map();
 }
