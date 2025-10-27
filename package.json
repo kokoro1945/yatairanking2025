@@ -1,0 +1,12 @@
+{
+  "name": "yatairanking2025",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate:qr": "node scripts/generate_qr.js"
+  },
+  "dependencies": {
+    "archiver": "^6.0.1",
+    "qrcode": "^1.5.3"
+  }
+}
