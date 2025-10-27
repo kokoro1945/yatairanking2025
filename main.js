@@ -36,6 +36,8 @@ const evaluateAnotherButton = document.getElementById('evaluate-another');
 const alreadyVotedSection = document.getElementById('already-voted');
 const alreadyVotedNumber = document.getElementById('already-voted-number');
 const alreadyChangeBoothButton = document.getElementById('already-change-booth');
+const qrNotice = document.getElementById('qr-notice');
+const openGateButton = document.getElementById('open-gate');
 
 let currentBoothId = '';
 let boothLocked = false;
@@ -96,9 +98,8 @@ function attachEventListeners() {
   changeBoothButton.addEventListener('click', () => {
     if (boothLocked) return;
     resetForm(true);
-    showGate();
+    showGate({ focusInput: true, scrollIntoView: true });
     updateQueryParam(null, null);
-    gateInput.focus();
   });
 
   form.addEventListener('change', () => {
@@ -108,16 +109,23 @@ function attachEventListeners() {
   form.addEventListener('submit', handleFormSubmit);
   evaluateAnotherButton.addEventListener('click', handleEvaluateAnother);
   alreadyChangeBoothButton.addEventListener('click', handleEvaluateAnother);
+
+  if (openGateButton) {
+    openGateButton.addEventListener('click', () => {
+      showGate({ focusInput: true, scrollIntoView: true });
+    });
+  }
 }
 
 function setupInitialState() {
   resetForm(true);
+  collapseGate();
   const boothFromQuery = getBoothFromQuery();
   const boothNameFromQuery = getBoothNameFromQuery();
   if (boothFromQuery) {
     setBooth(boothFromQuery, { fromQuery: true, boothName: boothNameFromQuery });
   } else {
-    showGate();
+    showLanding();
   }
 }
 
@@ -242,11 +250,8 @@ function handleFormSubmit(event) {
 
 function handleEvaluateAnother() {
   resetForm(true);
-  showGate();
   updateQueryParam(null, null);
-  thanksSection.classList.add('hidden');
-  hideAlreadyVotedView(true);
-  gateInput.focus();
+  showLanding();
 }
 
 function setBooth(boothId, { fromQuery, boothName }) {
@@ -256,6 +261,9 @@ function setBooth(boothId, { fromQuery, boothName }) {
   formBoothInput.value = boothId;
   boothDisplay.textContent = boothId;
   gateInput.value = boothId;
+
+  collapseGate();
+  hideQrNotice();
 
   if (currentBoothName) {
     renderGateBoothNameResult(currentBoothName);
@@ -295,7 +303,8 @@ function setBooth(boothId, { fromQuery, boothName }) {
 }
 
 function showForm() {
-  gateSection.classList.add('hidden');
+  collapseGate();
+  hideQrNotice();
   thanksSection.classList.add('hidden');
   alreadyVotedSection.classList.add('hidden');
   form.classList.remove('hidden');
@@ -303,8 +312,10 @@ function showForm() {
   submitButton.disabled = true;
 }
 
-function showGate() {
-  gateSection.classList.remove('hidden');
+function showGate(options = {}) {
+  const { focusInput = false, scrollIntoView = false } = options;
+  showQrNotice();
+  setGateVisibility(true);
   form.classList.add('hidden');
   thanksSection.classList.add('hidden');
   hideAlreadyVotedView(true);
@@ -314,9 +325,20 @@ function showGate() {
   currentBoothName = '';
   renderGateBoothNameDefault();
   renderBoothBannerName('');
+  submitButton.textContent = '評価を送信する';
+  submitButton.disabled = true;
+  showAlert('');
+  if (scrollIntoView && gateSection) {
+    gateSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (focusInput && gateInput) {
+    gateInput.focus({ preventScroll: true });
+  }
 }
 
 function showThanks() {
+  collapseGate();
+  hideQrNotice();
   form.classList.add('hidden');
   thanksSection.classList.remove('hidden');
   alreadyVotedSection.classList.add('hidden');
@@ -325,7 +347,8 @@ function showThanks() {
 }
 
 function showAlreadyVotedView() {
-  gateSection.classList.add('hidden');
+  collapseGate();
+  hideQrNotice();
   form.classList.add('hidden');
   thanksSection.classList.add('hidden');
   alreadyVotedSection.classList.remove('hidden');
@@ -345,6 +368,46 @@ function hideAlreadyVotedView(resetDisplayedNumber = false) {
   alreadyVotedSection.classList.add('hidden');
   if (resetDisplayedNumber && alreadyVotedNumber) {
     alreadyVotedNumber.textContent = '---';
+  }
+}
+
+function showLanding() {
+  showQrNotice();
+  collapseGate();
+  form.classList.add('hidden');
+  thanksSection.classList.add('hidden');
+  hideAlreadyVotedView(true);
+  submitButton.textContent = '評価を送信する';
+  submitButton.disabled = true;
+  showAlert('');
+}
+
+function setGateVisibility(isVisible) {
+  if (!gateSection) return;
+  gateSection.classList.toggle('hidden', !isVisible);
+  if (isVisible) {
+    gateSection.removeAttribute('aria-hidden');
+  } else {
+    gateSection.setAttribute('aria-hidden', 'true');
+  }
+  if (openGateButton) {
+    openGateButton.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
+  }
+}
+
+function collapseGate() {
+  setGateVisibility(false);
+}
+
+function showQrNotice() {
+  if (qrNotice) {
+    qrNotice.classList.remove('hidden');
+  }
+}
+
+function hideQrNotice() {
+  if (qrNotice) {
+    qrNotice.classList.add('hidden');
   }
 }
 
