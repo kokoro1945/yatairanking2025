@@ -37,23 +37,23 @@
         <button id="launch-qr-scanner" class="btn btn--accent" type="button" aria-controls="qr-scanner" aria-expanded="false">
           カメラで読み取る
         </button>
+        <!-- ブラウザ内QRリーダーのUI -->
+        <div id="qr-scanner" class="qr-scanner hidden" aria-hidden="true">
+          <div class="qr-scanner__viewport">
+            <video id="qr-video" class="qr-scanner__video" playsinline muted></video>
+            <div class="qr-scanner__overlay" aria-hidden="true"></div>
+          </div>
+          <p id="qr-status" class="qr-scanner__status">カメラの使用を許可すると自動的に読み取りが始まります。</p>
+          <div class="qr-scanner__actions">
+            <button id="qr-close" class="btn btn--outline" type="button">
+              カメラを閉じる
+            </button>
+          </div>
+          <p class="qr-scanner__tip">読み取りに失敗する場合は周囲を明るくし、QRコードを枠内に収めてください。</p>
+        </div>
         <button id="open-gate" class="btn btn--outline" type="button" aria-controls="booth-gate" aria-expanded="false">
           QRコードを読み取れない方はこちら
         </button>
-      </div>
-      <!-- ブラウザ内QRリーダーのUI -->
-      <div id="qr-scanner" class="qr-scanner hidden" aria-hidden="true">
-        <div class="qr-scanner__viewport">
-          <video id="qr-video" class="qr-scanner__video" playsinline muted></video>
-          <div class="qr-scanner__overlay" aria-hidden="true"></div>
-        </div>
-        <p id="qr-status" class="qr-scanner__status">カメラの使用を許可すると自動的に読み取りが始まります。</p>
-        <div class="qr-scanner__actions">
-          <button id="qr-close" class="btn btn--outline" type="button">
-            カメラを閉じる
-          </button>
-        </div>
-        <p class="qr-scanner__tip">読み取りに失敗する場合は周囲を明るくし、QRコードを枠内に収めてください。</p>
       </div>
       <p class="notice__hint">番号をお持ちの方は屋台番号を入力して評価を続けられます。</p>
       <p class="notice__hint">ブラウザでカメラが使えない場合は、端末のカメラアプリからQRコードを読み取ってください。</p>
