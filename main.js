@@ -38,6 +38,11 @@ const alreadyVotedNumber = document.getElementById('already-voted-number');
 const alreadyChangeBoothButton = document.getElementById('already-change-booth');
 const qrNotice = document.getElementById('qr-notice');
 const openGateButton = document.getElementById('open-gate');
+const launchQrScannerButton = document.getElementById('launch-qr-scanner');
+const qrScannerPanel = document.getElementById('qr-scanner');
+const qrVideoElement = document.getElementById('qr-video');
+const qrStatusMessage = document.getElementById('qr-status');
+const qrCloseButton = document.getElementById('qr-close');
 
 let currentBoothId = '';
 let boothLocked = false;
@@ -46,6 +51,10 @@ const BOOTHS_CSV_URL = './booths.csv';
 let boothCatalog = null;
 let boothCatalogPromise = null;
 let gateBoothNameRequestId = 0;
+let qrReader = null;
+let qrControls = null;
+let qrScannerActive = false;
+const defaultQrLaunchLabel = launchQrScannerButton ? launchQrScannerButton.textContent.trim() : '';
 
 document.addEventListener('DOMContentLoaded', () => {
   initializeStarInputs();
@@ -56,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('[booth] failed to preload catalogue', error);
   });
   setupInitialState();
+  initializeQrScanner();
 });
 
 function attachEventListeners() {
@@ -97,6 +107,7 @@ function attachEventListeners() {
 
   changeBoothButton.addEventListener('click', () => {
     if (boothLocked) return;
+    stopQrScanner({ hidePanel: true, restoreButton: true });
     resetForm(true);
     showGate({ focusInput: true, scrollIntoView: true });
     updateQueryParam(null, null);
@@ -112,8 +123,184 @@ function attachEventListeners() {
 
   if (openGateButton) {
     openGateButton.addEventListener('click', () => {
+      stopQrScanner({ hidePanel: true, restoreButton: true });
       showGate({ focusInput: true, scrollIntoView: true });
     });
+  }
+}
+
+function initializeQrScanner() {
+  // QRカメラ導線が存在しない（デスクトップレイアウトなど）場合は何もしない。
+  if (!launchQrScannerButton || !qrScannerPanel || !qrVideoElement || !qrStatusMessage) {
+    return;
+  }
+
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+    launchQrScannerButton.disabled = true;
+    launchQrScannerButton.setAttribute('aria-disabled', 'true');
+    launchQrScannerButton.textContent = 'ブラウザがカメラに対応していません';
+    qrScannerPanel.classList.add('hidden');
+    qrScannerPanel.setAttribute('aria-hidden', 'true');
+    showQrStatus('お使いのブラウザではカメラを利用できません。端末標準のカメラアプリをご利用ください。', 'warning');
+    return;
+  }
+
+  launchQrScannerButton.addEventListener('click', () => {
+    startQrScanner().catch((error) => {
+      console.error('[qr] failed to start scanner', error);
+      showQrStatus('カメラを起動できませんでした。端末の設定を確認し、再度お試しください。', 'error');
+      stopQrScanner({ hidePanel: true, restoreButton: true });
+    });
+  });
+
+  if (qrCloseButton) {
+    qrCloseButton.addEventListener('click', () => {
+      stopQrScanner({ hidePanel: true, restoreButton: true });
+      showQrStatus('カメラを停止しました。再度利用する場合は「カメラで読み取る」を押してください。', 'info');
+    });
+  }
+}
+
+// ZXing のリーダーを起動し、読み取りコールバックをセットする。
+async function startQrScanner() {
+  if (qrScannerActive) {
+    showQrStatus('読み取りを再開しています。QRコードを枠内に収めてください。', 'info');
+    return;
+  }
+
+  if (!launchQrScannerButton || !qrScannerPanel || !qrVideoElement) {
+    return;
+  }
+
+  const zxing = window.ZXingBrowser;
+  if (!zxing || !zxing.BrowserQRCodeReader) {
+    showQrStatus('読み取り用ライブラリを読み込めませんでした。通信環境を確認してから再度お試しください。', 'error');
+    return;
+  }
+
+  qrScannerActive = true;
+  launchQrScannerButton.disabled = true;
+  launchQrScannerButton.setAttribute('aria-expanded', 'true');
+  launchQrScannerButton.textContent = '読み取り準備中...';
+  qrScannerPanel.classList.remove('hidden');
+  qrScannerPanel.removeAttribute('aria-hidden');
+  showQrStatus('カメラの使用を許可するとスキャンが始まります。', 'info');
+
+  if (!qrReader) {
+    // 1度生成したリーダーを再利用してカメラ起動時間を短縮する。
+    qrReader = new zxing.BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 250 });
+  }
+
+  try {
+    qrControls = await qrReader.decodeFromVideoDevice(
+      undefined,
+      qrVideoElement,
+      (result, error) => {
+        if (result) {
+          handleQrScanResult(result);
+          return;
+        }
+        if (error && !(zxing.NotFoundException && error instanceof zxing.NotFoundException)) {
+          console.warn('[qr] non-fatal decode error', error);
+          showQrStatus('読み取れませんでした。QRコードをもう一度枠内に合わせてください。', 'warning');
+        }
+      }
+    );
+    launchQrScannerButton.textContent = '読み取り中...';
+    showQrStatus('QRコードを枠内に収めてください。読み取ると自動でページを移動します。', 'info');
+  } catch (error) {
+    qrScannerActive = false;
+    throw error;
+  }
+}
+
+// ZXing で確保したカメラストリームとUI状態を安全に解放する。
+function stopQrScanner(options = {}) {
+  const { hidePanel = false, restoreButton = false } = options;
+
+  if (qrControls && typeof qrControls.stop === 'function') {
+    try {
+      qrControls.stop();
+    } catch (error) {
+      console.warn('[qr] failed to stop controls', error);
+    }
+  }
+  qrControls = null;
+
+  if (qrReader) {
+    try {
+      qrReader.reset();
+    } catch (error) {
+      console.warn('[qr] failed to reset reader', error);
+    }
+  }
+
+  if (qrVideoElement) {
+    const stream = qrVideoElement.srcObject;
+    if (stream && typeof stream.getTracks === 'function') {
+      stream.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch (error) {
+          console.warn('[qr] failed to stop track', error);
+        }
+      });
+    }
+    qrVideoElement.srcObject = null;
+  }
+
+  qrScannerActive = false;
+
+  if (hidePanel && qrScannerPanel) {
+    qrScannerPanel.classList.add('hidden');
+    qrScannerPanel.setAttribute('aria-hidden', 'true');
+  }
+
+  if (restoreButton && launchQrScannerButton) {
+    launchQrScannerButton.disabled = false;
+    launchQrScannerButton.setAttribute('aria-expanded', 'false');
+    launchQrScannerButton.textContent = defaultQrLaunchLabel || 'カメラで読み取る';
+  }
+}
+
+// 読み取ったQRコードの内容を扱い、URLか屋台番号に応じて誘導する。
+function handleQrScanResult(result) {
+  const text = typeof result.getText === 'function' ? result.getText() : result.text;
+  const content = (text || '').trim();
+
+  if (!content) {
+    showQrStatus('QRコードを読み取りましたが内容を解釈できませんでした。', 'warning');
+    return;
+  }
+
+  showQrStatus('QRコードを読み取りました。移動しています...', 'success');
+  stopQrScanner({ hidePanel: true, restoreButton: true });
+
+  if (/^https?:\/\//i.test(content)) {
+    // QRコードがURLを返す場合は遷移させ、フォーム以外の導線にも対応する。
+    window.location.href = content;
+    return;
+  }
+
+  const boothCandidate = sanitizeBooth(content);
+  if (boothCandidate) {
+    // 屋台番号のみが埋め込まれていた場合はそのままフォーム選択に利用する。
+    setBooth(boothCandidate, { fromQuery: false });
+    return;
+  }
+
+  showQrStatus('QRコードから取得した内容を処理できませんでした。端末のカメラアプリで再度お試しください。', 'warning');
+}
+
+function showQrStatus(message, tone = 'info') {
+  if (!qrStatusMessage) return;
+  if (message) {
+    qrStatusMessage.textContent = message;
+  }
+  if (tone) {
+    qrStatusMessage.dataset.tone = tone;
+  } else {
+    delete qrStatusMessage.dataset.tone;
   }
 }
 
@@ -303,6 +490,7 @@ function setBooth(boothId, { fromQuery, boothName }) {
 }
 
 function showForm() {
+  stopQrScanner({ hidePanel: true, restoreButton: true });
   collapseGate();
   hideQrNotice();
   thanksSection.classList.add('hidden');
@@ -313,6 +501,7 @@ function showForm() {
 }
 
 function showGate(options = {}) {
+  stopQrScanner({ hidePanel: true, restoreButton: true });
   const { focusInput = false, scrollIntoView = false } = options;
   showQrNotice();
   setGateVisibility(true);
@@ -337,6 +526,7 @@ function showGate(options = {}) {
 }
 
 function showThanks() {
+  stopQrScanner({ hidePanel: true, restoreButton: true });
   collapseGate();
   hideQrNotice();
   form.classList.add('hidden');
@@ -347,6 +537,7 @@ function showThanks() {
 }
 
 function showAlreadyVotedView() {
+  stopQrScanner({ hidePanel: true, restoreButton: true });
   collapseGate();
   hideQrNotice();
   form.classList.add('hidden');
@@ -372,6 +563,7 @@ function hideAlreadyVotedView(resetDisplayedNumber = false) {
 }
 
 function showLanding() {
+  stopQrScanner({ hidePanel: true, restoreButton: true });
   showQrNotice();
   collapseGate();
   form.classList.add('hidden');
