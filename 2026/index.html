@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>生駒祭 屋台ランキング参加フォーム｜第78回近畿大学生駒祭</title>
+  <meta name="description" content="第78回近畿大学生駒祭の屋台ランキングに参加できる公式評価フォームです。人気屋台やグルメ情報をチェックしながら、お気に入りの屋台を5段階で投票しましょう。" />
+  <meta name="keywords" content="生駒祭,屋台,屋台ランキング,屋台評価,近畿大学,学園祭グルメ" />
+  <meta name="robots" content="index,follow" />
+  <meta property="og:title" content="生駒祭 屋台ランキング参加フォーム｜第78回近畿大学生駒祭" />
+  <meta property="og:description" content="生駒祭の屋台に投票してランキングに参加。人気メニューやおすすめ屋台の評価を集めています。" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://ikomasai.com/2026/" />
+  <meta property="og:image" content="https://ikomasai.com/og-image.jpg" />
+  <meta property="og:site_name" content="第78回近畿大学生駒祭 屋台ランキング" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="生駒祭 屋台ランキング参加フォーム" />
+  <meta name="twitter:description" content="第78回近畿大学生駒祭の屋台評価フォームで、おすすめ屋台に5段階投票しよう。" />
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="canonical" href="https://ikomasai.com/2026/" />
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="hero__content">
+        <p class="hero__eyebrow">第78回 近畿大学 生駒祭</p>
+        <h1 class="hero__title">生駒祭 屋台ランキング参加フォーム</h1>
+        <p class="hero__subtitle">人気屋台の味・接客・見た目・ボリュームを5段階で評価して、「生駒祭 屋台ランキング 2026」を一緒に作りましょう。</p>
+      </div>
+    </header>
+
+    <section id="qr-notice" class="card notice">
+      <h2 class="card__title">屋台のQRコードを読み取って評価ページへ</h2>
+      <p class="card__desc">各屋台に掲示されているQRコードからアクセスすると、該当屋台の評価フォームがすぐに開きます。まずはQRコードを読み取ってください。</p>
+      <div class="notice__actions">
+        <button id="launch-qr-scanner" class="btn btn--accent" type="button" aria-controls="qr-scanner" aria-expanded="false">
+          カメラで読み取る
+        </button>
+        <!-- ブラウザ内QRリーダーのUI -->
+        <div id="qr-scanner" class="qr-scanner hidden" aria-hidden="true">
+          <div class="qr-scanner__viewport">
+            <video id="qr-video" class="qr-scanner__video" playsinline muted></video>
+            <div class="qr-scanner__overlay" aria-hidden="true"></div>
+          </div>
+          <p id="qr-status" class="qr-scanner__status">カメラの使用を許可すると自動的に読み取りが始まります。</p>
+          <div class="qr-scanner__actions">
+            <button id="qr-close" class="btn btn--outline" type="button">
+              カメラを閉じる
+            </button>
+          </div>
+          <p class="qr-scanner__tip">読み取りに失敗する場合は周囲を明るくし、QRコードを枠内に収めてください。</p>
+        </div>
+        <button id="open-gate" class="btn btn--outline" type="button" aria-controls="booth-gate" aria-expanded="false">
+          QRコードを読み取れない方はこちら
+        </button>
+      </div>
+      <p class="notice__hint">番号をお持ちの方は屋台番号を入力して評価を続けられます。</p>
+      <p class="notice__hint">ブラウザでカメラが使えない場合は、端末のカメラアプリからQRコードを読み取ってください。</p>
+    </section>
+
+    <section id="booth-gate" class="card gate hidden" aria-hidden="true">
+      <h2 class="card__title">屋台番号を入力してください</h2>
+      <p class="card__desc">各屋台に割り振られている屋台番号（例：A01やB05など）を入力すると評価フォームが表示されます。</p>
+      <div class="gate__form">
+        <label class="gate__label" for="gate-booth">
+          <span>屋台番号</span>
+          <input id="gate-booth" class="input" type="text" inputmode="text" pattern="([A-Z]\d{2}|\d{3})" placeholder="例：A01" maxlength="3" autocapitalize="characters" />
+        </label>
+        <button id="gate-submit" class="btn btn--accent">この屋台を評価する</button>
+      </div>
+      <p id="gate-booth-name" class="gate__booth-name" aria-live="polite">屋台名：入力すると自動表示されます</p>
+      <p id="gate-error" class="gate__error" role="alert" aria-live="polite"></p>
+    </section>
+
+    <form id="rating-form" class="form card hidden" autocomplete="off">
+      <input type="hidden" id="form-booth" name="entry.375954542" />
+
+      <section class="booth-banner">
+        <div class="booth-banner__badge">Booth</div>
+        <div class="booth-banner__info">
+          <div class="booth-banner__number" id="booth-display">---</div>
+          <div class="booth-banner__name" id="booth-name-display">屋台名がここに表示されます</div>
+        </div>
+        <button type="button" id="change-booth" class="booth-banner__edit">番号を変更</button>
+      </section>
+
+      <div id="form-alert" class="alert" role="alert" aria-live="polite"></div>
+
+      <div class="card-grid">
+        <fieldset class="question-card">
+          <legend class="question-card__title">味の評価</legend>
+          <p class="question-card__subtitle">屋台の味を5段階で評価してください。</p>
+          <div class="stars" data-entry="entry.283403021">
+            <input type="radio" id="taste-1" name="entry.283403021" value="1" />
+            <label for="taste-1" data-value="1">★</label>
+            <input type="radio" id="taste-2" name="entry.283403021" value="2" />
+            <label for="taste-2" data-value="2">★</label>
+            <input type="radio" id="taste-3" name="entry.283403021" value="3" />
+            <label for="taste-3" data-value="3">★</label>
+            <input type="radio" id="taste-4" name="entry.283403021" value="4" />
+            <label for="taste-4" data-value="4">★</label>
+            <input type="radio" id="taste-5" name="entry.283403021" value="5" />
+            <label for="taste-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card">
+          <legend class="question-card__title">接客の評価</legend>
+          <p class="question-card__subtitle">スタッフの対応や雰囲気を評価してください。</p>
+          <div class="stars" data-entry="entry.1777377100">
+            <input type="radio" id="service-1" name="entry.1777377100" value="1" />
+            <label for="service-1" data-value="1">★</label>
+            <input type="radio" id="service-2" name="entry.1777377100" value="2" />
+            <label for="service-2" data-value="2">★</label>
+            <input type="radio" id="service-3" name="entry.1777377100" value="3" />
+            <label for="service-3" data-value="3">★</label>
+            <input type="radio" id="service-4" name="entry.1777377100" value="4" />
+            <label for="service-4" data-value="4">★</label>
+            <input type="radio" id="service-5" name="entry.1777377100" value="5" />
+            <label for="service-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card">
+          <legend class="question-card__title">見た目の評価</legend>
+          <p class="question-card__subtitle">盛り付けや屋台の演出を評価してください。</p>
+          <div class="stars" data-entry="entry.1748112455">
+            <input type="radio" id="appearance-1" name="entry.1748112455" value="1" />
+            <label for="appearance-1" data-value="1">★</label>
+            <input type="radio" id="appearance-2" name="entry.1748112455" value="2" />
+            <label for="appearance-2" data-value="2">★</label>
+            <input type="radio" id="appearance-3" name="entry.1748112455" value="3" />
+            <label for="appearance-3" data-value="3">★</label>
+            <input type="radio" id="appearance-4" name="entry.1748112455" value="4" />
+            <label for="appearance-4" data-value="4">★</label>
+            <input type="radio" id="appearance-5" name="entry.1748112455" value="5" />
+            <label for="appearance-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card">
+          <legend class="question-card__title">量の評価</legend>
+          <p class="question-card__subtitle">ボリュームや満足感を評価してください。</p>
+          <div class="stars" data-entry="entry.1302631587">
+            <input type="radio" id="volume-1" name="entry.1302631587" value="1" />
+            <label for="volume-1" data-value="1">★</label>
+            <input type="radio" id="volume-2" name="entry.1302631587" value="2" />
+            <label for="volume-2" data-value="2">★</label>
+            <input type="radio" id="volume-3" name="entry.1302631587" value="3" />
+            <label for="volume-3" data-value="3">★</label>
+            <input type="radio" id="volume-4" name="entry.1302631587" value="4" />
+            <label for="volume-4" data-value="4">★</label>
+            <input type="radio" id="volume-5" name="entry.1302631587" value="5" />
+            <label for="volume-5" data-value="5">★</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="question-card question-card--textarea">
+          <legend class="question-card__title">生駒祭について</legend>
+          <p class="question-card__subtitle">フェスティバル全体の感想や応援メッセージがあればお書きください。（任意）</p>
+          <textarea id="comment" name="entry.1107530138" rows="4" placeholder="例：活気があってとても楽しかったです！" class="textarea"></textarea>
+        </fieldset>
+      </div>
+
+      <div class="submit-area">
+        <button type="submit" id="submit-button" class="btn btn--submit" disabled>評価を送信する</button>
+      </div>
+    </form>
+
+    <section id="thanks" class="card thanks hidden" aria-live="polite">
+      <div class="thanks__badge">Thank you!</div>
+      <h2 class="thanks__title">ご協力ありがとうございました！</h2>
+      <p class="thanks__body">あなたの評価はランキング集計に反映されます。<br />生駒祭をこれからも一緒に盛り上げましょう！</p>
+      <button id="evaluate-another" class="btn btn--accent">他の屋台を評価する</button>
+    </section>
+
+    <section id="already-voted" class="card already-voted hidden" aria-live="polite">
+      <div class="already-voted__badge">Notice</div>
+      <h2 class="already-voted__title">この屋台にはすでに投票済みです</h2>
+      <p class="already-voted__body">
+        屋台番号 <span id="already-voted-number">---</span> の評価はすでに送信されています。<br />
+        ほかの屋台も体験したら、ぜひ評価をお願いします。
+      </p>
+      <div class="already-voted__actions">
+        <button id="already-change-booth" class="btn btn--accent">別の屋台を評価する</button>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Powered by 第78回生駒祭｜生駒祭 屋台ランキング運営チーム
+    </footer>
+  </main>
+
+  <script src="https://unpkg.com/@zxing/browser@0.1.3/umd/zxing-browser.min.js" defer></script>
+  <script src="./main.js" defer></script>
+</body>
+</html>
