@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "generate:qr": "node scripts/generate_qr.js"
+    "generate:qr:2025": "node 2025/scripts/generate_qr.js",
+    "generate:qr:2026": "node 2026/scripts/generate_qr.js"
   },
   "dependencies": {
     "archiver": "^6.0.1",
